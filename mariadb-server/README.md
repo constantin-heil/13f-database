@@ -10,20 +10,20 @@ The dockerfile executes the following steps:
 FROM alpine
 ```
 
-1. Update packages and install mariadb
+2. Update packages and install mariadb
 
 ```
 apk update
 apk add mariadb mariadb-client
 ```
 
-1. Installation of the server
+3. Installation of the server
 
 ```
 mysql_install_db --user mysql --datadir=/var/lib/mysql
 ```
 
-1. Change the root password
+4. Change the root password
 
 This is run with a small bash script so that it can be run without opening a new terminal
 
@@ -31,7 +31,7 @@ This is run with a small bash script so that it can be run without opening a new
 sh change_root_password.sh
 ```
 
-1. Secure the installation
+5. Secure the installation
 
 These are the steps normally carried out by mysql_secure_installation, i.e.:
 	- delete the default user
@@ -45,7 +45,7 @@ We run these steps from a script because the original command is interactive.
 sh secure_installation.sh
 ```
 
-1. Database ready
+6. Database ready
 
 Access database as root with:
 
