@@ -25,7 +25,7 @@ BASEURL = "https://www.sec.gov"
 TMPDATAPATH = Path(__file__).resolve().parent / "datapath"
 
 target_html = requests.get(TARGETSITE).content
-target_parsed = bs4.BeautifulSoup(target_html, "html")
+target_parsed = bs4.BeautifulSoup(target_html, features = "html.parser")
 
 allurls = [u.get("href") for u in target_parsed.find_all("a")]
 datapaths = [ref for ref in allurls if re.search(r"\.zip$", str(ref))]
@@ -62,3 +62,5 @@ rmtree(str(TMPDATAPATH))
 print("Creating indexes...")
 with engine.connect() as c:
     c.execute(text("CREATE FULLTEXT INDEX infotable_nameofissuer ON INFOTABLE(NAMEOFISSUER)"))
+    c.execute(text("CREATE INDEX covertable_accession on COVERPAGE(ACCESSION_NUMBER)"))
+    c.execute(text("CREATE INDEX timemap_accession on TIMEMAP(ACCESSION_NUMBER)"))
