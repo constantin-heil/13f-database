@@ -1,7 +1,7 @@
 ### This module contains functions that return text strings that represent
 ### complete SQL queries
 
-def top_holdings(issuer: str, n_results: int = 10) -> str:
+def top_holdings(issuer: str, n_results: int = None) -> str:
     """SQL query of top 10 holdings for a given issuer
 
     Args:
