@@ -62,5 +62,6 @@ rmtree(str(TMPDATAPATH))
 print("Creating indexes...")
 with engine.connect() as c:
     c.execute(text("CREATE FULLTEXT INDEX infotable_nameofissuer ON INFOTABLE(NAMEOFISSUER)"))
+    c.execute(text("CREATE FULLTEXT INDEX coverpage_filingmanager_name ON COVERPAGE(FILINGMANAGER_NAME)"))
     c.execute(text("CREATE INDEX covertable_accession on COVERPAGE(ACCESSION_NUMBER)"))
     c.execute(text("CREATE INDEX timemap_accession on TIMEMAP(ACCESSION_NUMBER)"))

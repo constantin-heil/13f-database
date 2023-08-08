@@ -1,11 +1,12 @@
 ### This module contains functions that return text strings that represent
 ### complete SQL queries
 
-def top_holdings(issuer: str) -> str:
+def top_holdings(issuer: str, n_results: int = 10) -> str:
     """SQL query of top 10 holdings for a given issuer
 
     Args:
         issuer (str): Pattern to match INFOTABLE.NAMEOFISSUER
+        n_results (int): Number of top results to return
 
     Returns:
         str: String that can be passed to SQL engine as query
@@ -19,7 +20,11 @@ def top_holdings(issuer: str) -> str:
         f'TIMEMAP t '
         f'ON c.ACCESSION_NUMBER = t.ACCESSION_NUMBER '
         f'ORDER BY q.VALUE DESC '
-        f'LIMIT 10;'
         )
+
+    if n_results:
+        limit_str = f'LIMIT {n_results};'
+    else:
+        limit_str = f';'
     
-    return sql_query
+    return sql_query + limit_str
