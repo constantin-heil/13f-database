@@ -1,5 +1,6 @@
 from dash import Dash, html, dcc
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import pandas as pd
 
 class nameofissuer_plotter:
@@ -70,7 +71,7 @@ class nameofissuer_plotter:
             fig.add_trace(trace_dic, row = 1, col = j)
             
         fig.update_layout(showlegend = False)
-        fig.show()
+        return fig
         
     def get_bar_plot(self) -> None:
         """Plot a bar plot that summarizes the total amount of investments
@@ -94,4 +95,4 @@ class nameofissuer_plotter:
         }
         
         fig = go.Figure(trace, layout)
-        fig.show()
+        return fig
