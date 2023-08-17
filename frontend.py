@@ -1,4 +1,4 @@
-from dash import Dash, html, dcc, Input, Output, callback
+from dash import Dash, html, dcc, Input, Output, State, callback
 import plotly.graph_objects as go
 from sqlalchemy import create_engine
 import pandas as pd
@@ -21,15 +21,15 @@ app.layout = html.Div(children = [
     dcc.Graph(id = "managers_barplot"),
     dcc.Input(id = "pie_ix", value = "0"),
     dcc.Graph(id = "pie_plot"),
-    dcc.Store(id = "querystore")
+    dcc.Loading(dcc.Store(id = "querystore"), fullscreen = True)
 ])
 
 @callback(
     Output("querystore", "data"),
-    Input("query_company", "value"),
-    Input("submit_query", "n_clicks")
+    inputs = Input("submit_query", "n_clicks"),
+    state = State("query_company", "value")
 )
-def get_top_holders_plots(company_query: str, n_clicks: int) -> dict:
+def get_top_holders_plots(n_clicks: int, company_query: str) -> dict:
     """Make database query and return the 2 plot types
 
     Args:
@@ -39,11 +39,11 @@ def get_top_holders_plots(company_query: str, n_clicks: int) -> dict:
     df = pd.read_sql_query(queryfunctions.top_holders(company_query), con = engine)
     return df.to_dict()
 
-@callback([Output("managers_barplot", "figure"),
-            Output("pie_plot", "figure")],
-           [Input("querystore", "data"),
-            Input("pie_ix", "value")])
-def get_plots(df_dic, pie_ix) -> (go.Figure, go.Figure):
+@callback(output = [Output("managers_barplot", "figure"),
+                     Output("pie_plot", "figure")],
+           inputs = [Input("pie_ix", "value"),
+                     Input("querystore", "data")])
+def get_plots(pie_ix, df_dic) -> (go.Figure, go.Figure):
     df = pd.DataFrame(df_dic)
     plotter = plotfunctions.nameofissuer_plotter(df)
     
