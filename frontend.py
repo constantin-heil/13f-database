@@ -36,7 +36,8 @@ def get_top_holders_plots(n_clicks: int, company_query: str) -> dict:
         company_query (str): Company to query in SQL BOOLEAN mode query
         pie_ix (int): Which pie plot will be the first of 4
     """
-    df = pd.read_sql_query(queryfunctions.top_holders(company_query), con = engine)
+    query_str, param_dic = queryfunctions.top_holders(company_query)
+    df = pd.read_sql_query(query_str, params = param_dic, con = engine)
     return df.to_dict()
 
 @callback(output = [Output("managers_barplot", "figure"),
