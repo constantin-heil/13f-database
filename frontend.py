@@ -14,18 +14,29 @@ engine = create_engine(f"mysql+pymysql://{username}:{password}@{host}/{database}
 
 app = Dash(__name__)
 
+SLIDERTEXT = """
+## Slider to define pie plots
+Set value is lowest index of first pieplot in a set of 4 to plot
+"""
+
+SUMMARYBARPLOTTEXT = """
+## Barplot that summarizes total holdings
+Plot that holds the sum of all VALUE columns for each year and quartal"""
+
 app.layout = html.Div(children = [
-    html.H1(children = "Holdings plot"),
+    dcc.Markdown(children = SUMMARYBARPLOTTEXT),
     dcc.Input(id = "query_company", value = "+Cameco", type = "text"),
     html.Button(id = "submit_query", children = "Submit"),
     dcc.Graph(id = "managers_barplot"),
-    dcc.Input(id = "pie_ix", value = "0"),
+    dcc.Markdown(children = SLIDERTEXT),
+    dcc.Slider(id = "pie_ix", min = 0, step = 1, value = 0),
     dcc.Graph(id = "pie_plot"),
     dcc.Loading(dcc.Store(id = "querystore"), fullscreen = True)
 ])
 
 @callback(
-    Output("querystore", "data"),
+    [Output("querystore", "data"),
+     Output("pie_ix", "max")],
     inputs = Input("submit_query", "n_clicks"),
     state = State("query_company", "value")
 )
@@ -38,7 +49,9 @@ def get_top_holders_plots(n_clicks: int, company_query: str) -> dict:
     """
     query_str, param_dic = queryfunctions.top_holders(company_query)
     df = pd.read_sql_query(query_str, params = param_dic, con = engine)
-    return df.to_dict()
+    max_n_timeperiods = df[["YEAR", "QUARTAL"]].drop_duplicates().shape[0] - 4
+    
+    return df.to_dict(), max_n_timeperiods
 
 @callback(output = [Output("managers_barplot", "figure"),
                      Output("pie_plot", "figure")],
@@ -49,7 +62,7 @@ def get_plots(pie_ix, df_dic) -> (go.Figure, go.Figure):
     plotter = plotfunctions.nameofissuer_plotter(df)
     
     barplot = plotter.get_bar_plot()
-    pieplot = plotter.get_pie_plot(int(pie_ix))
+    pieplot = plotter.get_pie_plot(pie_ix)
     
     return barplot, pieplot
 
