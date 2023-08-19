@@ -20,6 +20,6 @@ database = 'sec13f'
 
 if __name__ == "__main__":
     engine = create_engine(f"mysql+pymysql://{username}:{password}@{host}/{database}")
-    query_str = queryfunctions.top_holders(query_str, n_results)
+    query_str, params_dic = queryfunctions.top_holders(query_str, n_results)
     
-    print(pd.read_sql_query(query_str, con = engine))
+    print(pd.read_sql_query(query_str, params = params_dic, con = engine))
