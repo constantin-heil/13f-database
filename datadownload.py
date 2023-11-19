@@ -7,13 +7,49 @@ import pandas as pd
 import zipfile
 import pymysql
 from sqlalchemy import create_engine, text
+import sqlalchemy
 import json
+from functools import partial
 
 def import_json(fn: str) -> dict:
     with open(fn, 'r') as fh:
         loadedjson = json.load(fh)
 
     return loadedjson
+
+def download_write(datapath: str, 
+                   tmppath: str, 
+                   engine: sqlalchemy.engine,
+                   datecols: dict,
+                   coltypes: dict) -> None:
+    filestem = Path(datapath).stem
+    year, quartal = filestem.replace("_form13f", "").split("q")
+    print(f"Writing year: {year} quartal: {quartal}")
+
+    dl_path = BASEURL + dp
+    r = requests.get(dl_path)
+
+    with open(tmppath / "tmp.zip", "wb") as fh:
+        fh.write(r.content)
+
+    with zipfile.ZipFile(tmppath / "tmp.zip") as zh:
+        zh.extractall(tmppath)
+
+    datafiles = tmppath.rglob("*.tsv")
+    filenames_dic = {str(p.stem): str(p.resolve()) for p in datafiles}
+
+    for file in filenames_dic:
+        df = pd.read_csv(filenames_dic[file], 
+                         sep = "\t", 
+                         parse_dates = datecols[file], 
+                         date_format = "%d-%b-%Y",
+                         dtype = coltypes[file])
+
+        df.to_sql(file, con = engine, index = False, if_exists = "append")
+
+        if file == "SUBMISSION":
+            meta_df = pd.DataFrame({"ACCESSION_NUMBER": df["ACCESSION_NUMBER"], "YEAR": year, "QUARTAL": quartal})
+            meta_df.to_sql("TIMEMAP", con = engine, index = False, if_exists = "append")
 
 username = 'remoteuser'
 password = 'password'
@@ -44,36 +80,16 @@ datapaths = [ref for ref in allurls if re.search(r"\.zip$", str(ref))]
 
 TMPDATAPATH.mkdir(exist_ok = True)
 
-for dp in datapaths:
-    filestem = Path(dp).stem
-    year, quartal = filestem.replace("_form13f", "").split("q")
-    print(f"Writing year: {year} quartal: {quartal}")
+fixedkwargs = {
+    "engine": engine,
+    "tmppath": TMPDATAPATH,
+    "datecols": datecols,
+    "coltypes": coltypes
+}
 
-    dl_path = BASEURL + dp
-    r = requests.get(dl_path)
+ingestdata = partial(download_write, **fixedkwargs)
+_ = list(map(ingestdata, datapaths))
 
-    with open(TMPDATAPATH / "tmp.zip", "wb") as fh:
-        fh.write(r.content)
-
-    with zipfile.ZipFile(TMPDATAPATH / "tmp.zip") as zh:
-        zh.extractall(TMPDATAPATH)
-
-    datafiles = TMPDATAPATH.rglob("*.tsv")
-    filenames_dic = {str(p.stem): str(p.resolve()) for p in datafiles}
-
-    for file in filenames_dic:
-        df = pd.read_csv(filenames_dic[file], 
-                         sep = "\t", 
-                         parse_dates = datecols[file], 
-                         date_format = "%d-%b-%Y",
-                         dtype = coltypes[file])
-
-        df.to_sql(file, con = engine, index = False, if_exists = "append")
-
-        if file == "SUBMISSION":
-            meta_df = pd.DataFrame({"ACCESSION_NUMBER": df["ACCESSION_NUMBER"], "YEAR": year, "QUARTAL": quartal})
-            meta_df.to_sql("TIMEMAP", con = engine, index = False, if_exists = "append")
-            
 rmtree(str(TMPDATAPATH))
 
 ### Create indexes
