@@ -10,6 +10,7 @@ from sqlalchemy import create_engine, text
 import sqlalchemy
 import json
 from functools import partial
+from multiprocessing import Process
 
 def import_json(fn: str) -> dict:
     with open(fn, 'r') as fh:
@@ -88,7 +89,8 @@ fixedkwargs = {
 }
 
 ingestdata = partial(download_write, **fixedkwargs)
-_ = list(map(ingestdata, datapaths))
+for dp in datapaths:
+    ingestdata(dp)
 
 rmtree(str(TMPDATAPATH))
 
