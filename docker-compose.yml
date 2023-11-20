@@ -1,0 +1,13 @@
+version: '3'
+services:
+  db:
+    build:
+      context: ./db-image
+    ports:
+      - "3306:3306"
+
+  data-loader:
+    build:
+      context: ./data-image
+    depends_on:
+      - db
