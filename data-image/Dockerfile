@@ -10,4 +10,5 @@ RUN python3 -m pip install -r requirements.txt
 
 EXPOSE 3306
 
+RUN mkdir /logging
 CMD ["python3", "datadownload.py"]

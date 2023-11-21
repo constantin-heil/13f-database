@@ -12,6 +12,14 @@ import sqlalchemy
 import json
 from functools import partial
 from multiprocessing import Process
+import logging
+import sys
+
+logging.basicConfig(
+    filename = "/logging/log.txt",
+    encoding = "utf-8",
+    level = logging.DEBUG
+)
 
 def import_json(fn: str) -> dict:
     with open(fn, 'r') as fh:
@@ -26,7 +34,7 @@ def download_write(datapath: str,
                    coltypes: dict) -> None:
     filestem = Path(datapath).stem
     year, quartal = filestem.replace("_form13f", "").split("q")
-    print(f"Writing year: {year} quartal: {quartal}")
+    logging.info(f"Writing year: {year} quartal: {quartal}")
 
     dl_path = BASEURL + dp
     r = requests.get(dl_path)
@@ -61,6 +69,7 @@ def block_until_connected(engine: sqlalchemy.engine) -> None:
         try:
             engine.connect()
         except SQLAlchemyError as err:
+            logging.info("Trying to connect to db...")
             continue
 
         break
@@ -71,13 +80,12 @@ host = 'db'
 database = 'sec13f'
 
 engine = create_engine(f"mysql+pymysql://{username}:{password}@{host}")
+block_until_connected(engine)
 
 with engine.connect() as c:
     c.execute(text(f"CREATE DATABASE IF NOT EXISTS {database};"))
 
 engine = create_engine(f"mysql+pymysql://{username}:{password}@{host}/{database}")
-
-block_until_connected(engine)
 
 wd = Path(__file__).resolve().parent
 
@@ -88,11 +96,21 @@ TARGETSITE = "https://www.sec.gov/dera/data/form-13f"
 BASEURL = "https://www.sec.gov"
 TMPDATAPATH = wd / "datapath"
 
-target_html = requests.get(TARGETSITE).content
+res = requests.get(TARGETSITE)
+if res.status_code == 403:
+    logging.error("REQUEST RATE THRESHOLD EXCEEDED: Wait before running again!")
+    sys.exit()
+
+target_html = res.content
 target_parsed = bs4.BeautifulSoup(target_html, features = "html.parser")
+
+
 
 allurls = [u.get("href") for u in target_parsed.find_all("a")]
 datapaths = [ref for ref in allurls if re.search(r"\.zip$", str(ref))]
+
+pathstr = "\n".join(datapaths)
+logging.info(f"Getting data for\n{pathstr}")
 
 TMPDATAPATH.mkdir(exist_ok = True)
 
@@ -110,7 +128,7 @@ for dp in datapaths:
 rmtree(str(TMPDATAPATH))
 
 ### Create indexes
-print("Creating indexes...")
+logging.info("Creating indexes...")
 with engine.connect() as c:
     c.execute(text("CREATE FULLTEXT INDEX infotable_nameofissuer ON INFOTABLE(NAMEOFISSUER)"))
     c.execute(text("CREATE FULLTEXT INDEX coverpage_filingmanager_name ON COVERPAGE(FILINGMANAGER_NAME)"))

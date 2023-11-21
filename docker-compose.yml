@@ -11,3 +11,5 @@ services:
       context: ./data-image
     depends_on:
       - db
+    volumes:
+      - ./logpath:/logging
